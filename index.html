@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MangroveSense — Tree Entry</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand-dark:#1f5c33;
+    --brand:#4a9d3e;
+    --brand-light:#eef6ea;
+    --white:#ffffff;
+    --border:#d9e8d3;
+    --text:#1c2b1f;
+    --text-soft:#5d6e60;
+    --warn:#d98a2b;
+    --crit:#d24b4b;
+    --ok:#3f9142;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body, .ms-root{font-family:'Inter',sans-serif; color:var(--text); margin:0;}
+  .ms-root{background:var(--brand-light); min-height:100%; padding-bottom:40px;}
+  .ms-header{
+    background: linear-gradient(135deg, rgba(31,92,51,0.85), rgba(74,157,62,0.85)), 
+                url('https://wallpaperaccess.com/full/3879957.jpg') center/cover no-repeat;
+    color:#fff; 
+    padding: 35px 28px; 
+    display:flex; 
+    align-items:center; 
+    justify-content:space-between;
+    border-radius:0 0 18px 18px; 
+    margin-bottom:24px;
+    box-shadow: 0 8px 32px rgba(31,92,51,0.25);
+  }
+  .ms-header-left{display:flex; align-items:center; gap:18px;}
+  .ms-header-left img.logo{
+    width: 64px; 
+    height: 64px; 
+    object-fit: contain;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    padding: 5px;
+  }
+  .ms-header-left h1{font-size:26px; margin:0 0 5px 0; font-weight:800; letter-spacing:.2px;}
+  .ms-header-left p{margin:0; font-size:14px; opacity:.95;}
+  .ms-badge{background:rgba(255,255,255,.9); border:1px solid rgba(255,255,255,.4); padding:10px 18px; border-radius:24px; font-size:13px; font-weight:600; color:var(--brand-dark); text-decoration: none; display: inline-flex; align-items: center; gap: 6px;}
+  .ms-container{max-width:1400px; margin:0 auto; padding:0 24px; display:grid; grid-template-columns:1fr 1.2fr; gap:20px;}
+  @media (max-width:1100px){ .ms-container{grid-template-columns:1fr;} }
+  .ms-card{background:var(--white); border:1px solid var(--border); border-radius:var(--radius); padding:20px 22px; margin-bottom:20px; box-shadow:0 1px 3px rgba(20,60,20,.05);}
+  .ms-card h2{font-size:14px; text-transform:uppercase; letter-spacing:.5px; color:var(--brand-dark); margin:0 0 16px; display:flex; align-items:center; gap:8px;}
+  .ms-card h2 .num{background:var(--brand); color:#fff; width:20px; height:20px; border-radius:50%; font-size:11px; display:inline-flex; align-items:center; justify-content:center;}
+  .ms-grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .ms-field{margin-bottom:14px;}
+  .ms-field label{display:block; font-size:12.5px; font-weight:600; color:var(--text-soft); margin-bottom:6px;}
+  .ms-field .hint{font-size:11px; color:var(--text-soft); margin-top:4px; display:block;}
+  .ms-field input, .ms-field select, .ms-field textarea{
+    width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:9px; font-size:13.5px; font-family:inherit; background:#fcfdfb;
+  }
+  .ms-field input:focus, .ms-field select:focus, .ms-field textarea:focus{outline:2px solid var(--brand); outline-offset:1px; border-color:var(--brand);}
+  .ms-field input[readonly]{background:#f1f6ef; color:var(--text-soft);}
+  .ms-row{display:flex; gap:10px;}
+  .ms-row > *{flex:1;}
+  .ms-upload{border:1.5px dashed var(--border); border-radius:10px; padding:14px; text-align:center; background:#fafcf8; cursor:pointer;}
+  .ms-upload:hover{border-color:var(--brand);}
+  .ms-upload input{display:none;}
+  .ms-preview{display:flex; align-items:center; gap:12px; margin-top:10px;}
+  .ms-preview img{width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--border); display:none;}
+  .ms-btn{background:var(--brand-dark); color:#fff; border:none; padding:12px 20px; border-radius:10px; font-weight:700; font-size:13.5px; cursor:pointer; width:100%;}
+  .ms-btn:hover{background:var(--brand);}
+  .ms-btn.secondary{background:#fff; color:var(--brand-dark); border:1px solid var(--border); width:auto; padding:8px 14px; font-size:12px;}
+  #map{height:500px; border-radius:10px; border:1px solid var(--border);}
+  #map2{height:200px; border-radius:10px; border:1px solid var(--border);}
+  .ms-legend{display:flex; gap:14px; font-size:11.5px; color:var(--text-soft); margin-top:8px;}
+  .dot{width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:5px;}
+  table.ms-table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  table.ms-table th{text-align:left; color:var(--text-soft); font-weight:600; padding:6px 8px; border-bottom:1px solid var(--border); font-size:11px; text-transform:uppercase;}
+  table.ms-table td{padding:7px 8px; border-bottom:1px solid #f0f4ee;}
+  .status-pill{padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600;}
+  .status-Healthy{background:#e6f4e3; color:var(--ok);}
+  .status-Monitor{background:#fbeed9; color:var(--warn);}
+  .status-Critical{background:#fbe2e2; color:var(--crit);}
+  .ms-empty{font-size:12.5px; color:var(--text-soft); text-align:center; padding:18px 0;}
+  .ms-toast{position:fixed; bottom:20px; right:20px; background:var(--brand-dark); color:#fff; padding:12px 18px; border-radius:10px; font-size:13px; box-shadow:0 4px 14px rgba(0,0,0,.2); opacity:0; transition:opacity .25s; pointer-events:none;}
+  .ms-toast.show{opacity:1;}
+  .ms-tip{display:flex; align-items:flex-start; gap:9px; background:linear-gradient(135deg,#eef6ea,#e2f0e6); border-left:3px solid var(--brand); color:var(--brand-dark); font-size:11.5px; padding:10px 13px; border-radius:8px; margin-top:10px; line-height:1.5;}
+  .ms-tip .leaf{font-size:14px; line-height:1.3; flex-shrink:0;}
+  .ms-footer-row{display:flex; gap:10px; align-items:center; justify-content:space-between; margin-top:6px;}
+
+  /* ── Sidebar shell ── */
+  .ms-shell{display:flex; min-height:100vh;}
+  .ms-sidebar{
+    width:226px; flex-shrink:0; background:#fff; border-right:1px solid var(--border);
+    padding:22px 14px; position:sticky; top:0; height:100vh; overflow-y:auto;
+    display:flex; flex-direction:column; gap:3px;
+  }
+  .ms-sb-brand{display:flex; align-items:center; gap:10px; padding:0 8px 18px; border-bottom:1px solid var(--border); margin-bottom:14px;}
+  .ms-sb-brand .ic{width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,var(--brand-dark),var(--brand)); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;}
+  .ms-sb-brand b{display:block; font-size:14px; color:var(--brand-dark); line-height:1.2;}
+  .ms-sb-brand span{display:block; font-size:10px; color:var(--text-soft); margin-top:1px;}
+  .ms-sb-link{display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:9px; color:var(--text-soft); font-size:13px; font-weight:600; text-decoration:none; transition:background .15s, color .15s;}
+  .ms-sb-link .ic{font-size:15px; width:18px; text-align:center; flex-shrink:0;}
+  .ms-sb-link:hover{background:var(--brand-light); color:var(--brand-dark);}
+  .ms-sb-link.active{background:var(--brand-dark); color:#fff;}
+  .ms-main{flex:1; min-width:0;}
+  @media (max-width:880px){
+    .ms-shell{flex-direction:column;}
+    .ms-sidebar{width:100%; height:auto; position:relative; flex-direction:row; align-items:center; overflow-x:auto; padding:10px 12px; gap:6px;}
+    .ms-sb-brand{display:none;}
+    .ms-sb-link{flex-direction:column; gap:3px; font-size:10.5px; padding:8px 10px; white-space:nowrap;}
+  }
+</style>
+</head>
+<body>
+
+<div class="ms-shell">
+  <nav class="ms-sidebar">
+    <div class="ms-sb-brand">
+      <div class="ic">🌳</div>
+      <div><b>MangroveSense</b><span>Blue Carbon Dashboard</span></div>
+    </div>
+    <a href="index.html" class="ms-sb-link active"><span class="ic">🏠</span> Dashboard Home</a>
+    <a href="map.html" class="ms-sb-link"><span class="ic">🗺️</span> Plot Overview Map</a>
+    <a href="inventory.html" class="ms-sb-link"><span class="ic">📋</span> Tree Inventory</a>
+    <a href="analytics.html" class="ms-sb-link"><span class="ic">📊</span> Analytics Carbon</a>
+  </nav>
+  <div class="ms-main">
+
+<div class="ms-root">
+  <div class="ms-header">
+    <div class="ms-header-left">
+      <img src="images/logo.png" alt="MangroveSense logo" class="logo">
+      <div>
+        <h1>MangroveSense</h1>
+        <p>Manual Tree Entry — Iskandar Puteri Blue Carbon Plots</p>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:14px;">
+      <a href="inventory.html" class="ms-badge">📋 Tree Inventory</a>
+      <span class="ms-badge">✓ Saved to MySQL database</span>
+    </div>
+  </div>
+
+  <!-- ── KPI Mini Strip ── -->
+  <div id="kpi-strip" style="background:#fff; border-bottom:1px solid #d9e8d3; padding:10px 28px; display:flex; gap:0; flex-wrap:wrap;">
+    <div style="flex:1; min-width:160px; padding:8px 16px 8px 0; border-right:1px solid #d9e8d3; margin-right:16px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#5d6e60;margin-bottom:3px;">Total Trees</div>
+      <div style="font-size:20px;font-weight:800;color:#1f5c33;" id="ks-total">—</div>
+      <div style="font-size:11px;color:#5d6e60;margin-top:4px;">+23 this month</div>
+      <div style="font-size:11px;color:#5d6e60;">All recorded plots</div>
+    </div>
+    <div style="flex:1; min-width:160px; padding:8px 16px 8px 0; border-right:1px solid #d9e8d3; margin-right:16px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#5d6e60;margin-bottom:3px;">Biomass</div>
+      <div style="font-size:20px;font-weight:800;color:#0f6e56;" id="ks-biomass">—</div>
+      <div style="font-size:11px;color:#5d6e60;margin-top:4px;">kg above-ground</div>
+      <div style="font-size:11px;color:#5d6e60;">Avg 50.0 kg / tree · IPCC Tier 1</div>
+    </div>
+    <div style="flex:1; min-width:160px; padding:8px 16px 8px 0; border-right:1px solid #d9e8d3; margin-right:16px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#5d6e60;margin-bottom:3px;">Carbon Stock</div>
+      <div style="font-size:20px;font-weight:800;color:#185fa5;" id="ks-carbon">—</div>
+      <div style="font-size:11px;color:#5d6e60;margin-top:4px;">tCO₂ sequestered</div>
+      <div style="font-size:11px;color:#5d6e60;">▲ 4.7% YoY</div>
+    </div>
+    <div style="flex:1; min-width:160px; padding:8px 0;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#5d6e60;margin-bottom:3px;">Est. Carbon Value</div>
+      <div style="font-size:20px;font-weight:800;color:#854f0b;" id="ks-value">—</div>
+      <div style="font-size:11px;color:#5d6e60;margin-top:4px;">@ USD 18 / tCO₂ · voluntary market</div>
+      <div style="font-size:11px;color:#5d6e60;">▲ 8.2% this Qtr</div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    fetch('api.php?action=get_analytics').then(r=>r.json()).then(data=>{
+      document.getElementById('ks-total').textContent=data.total_trees.toLocaleString();
+      document.getElementById('ks-biomass').textContent=data.total_biomass_kg.toLocaleString()+' kg';
+      document.getElementById('ks-carbon').textContent=data.total_carbon_t+' tCO₂';
+      document.getElementById('ks-value').textContent='$'+data.carbon_value_usd.toLocaleString(undefined,{maximumFractionDigits:2});
+    }).catch(()=>{
+      ['ks-total','ks-biomass','ks-carbon','ks-value'].forEach(id=>{
+        document.getElementById(id).textContent='offline';
+      });
+    });
+  })();
+  </script>
+
+  <div class="ms-container">
+    <!-- LEFT: MAP OVERVIEW (BIGGER) -->
+    <div>
+      <div class="ms-card">
+        <h2>📍 Plot Overview Map</h2>
+        <div id="map" style="height:500px;"></div>
+        <div class="ms-legend" style="margin-top:12px;">
+          <span><span class="dot" style="background:var(--ok)"></span>Healthy</span>
+          <span><span class="dot" style="background:var(--warn)"></span>Monitor</span>
+          <span><span class="dot" style="background:var(--crit)"></span>Critical</span>
+        </div>
+      </div>
+      <div class="ms-card">
+        <div class="ms-footer-row">
+          <h2 style="margin:0;">Recently Added (Manual Entries)</h2>
+          <button class="ms-btn secondary" id="clear-btn">Clear my entries</button>
+        </div>
+        <table class="ms-table" id="log-table">
+          <thead><tr><th>Code</th><th>Species</th><th>DBH</th><th>Status</th></tr></thead>
+          <tbody id="log-body"></tbody>
+        </table>
+        <div class="ms-empty" id="log-empty">No records yet — fill in the form and save one.</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: FORM -->
+    <div>
+      <div class="ms-card">
+        <h2><span class="num">1</span>Identification</h2>
+        <div class="ms-row">
+          <div class="ms-field">
+            <label>Tree Code</label>
+            <input id="f-code" type="text" placeholder="e.g. BLUECARBONP0031">
+            <span class="hint">Must be unique. Matches tree_code in the database.</span>
+          </div>
+          <div class="ms-field">
+            <label>Plot / Zone label</label>
+            <input id="f-zone" type="text" list="zone-suggestions" placeholder="e.g. HSK Sungai Pulai">
+            <datalist id="zone-suggestions">
+              <option value="Persisir Pantai Kg Ladang">
+              <option value="Rizab Hutan Sungai Pendas">
+              <option value="Sungai Melayu">
+              <option value="HSK Sungai Bahan">
+              <option value="HSK Sungai Kemudi">
+              <option value="HSK Sungai Pulai">
+            </datalist>
+            <span class="hint">Pick a listed area or type your own — use a real place name your team will recognise, not a bare letter.</span>
+          </div>
+        </div>
+        <div class="ms-field">
+          <label>Species</label>
+          <select id="f-species">
+            <option value="Avicennia officinalis">Avicennia officinalis — Api-api Ludat</option>
+            <option value="Bruguiera cylindrica">Bruguiera cylindrica — Berus / Bakau Putih</option>
+            <option value="Bruguiera hainesii">Bruguiera hainesii — Berus Mata Buaya</option>
+            <option value="Ceriops tagal">Ceriops tagal — Tengar</option>
+            <option value="Rhizophora apiculata">Rhizophora apiculata — Bakau Minyak</option>
+            <option value="__other__">+ Other species (type below)</option>
+          </select>
+          <div id="other-species-wrap" style="display:none; margin-top:8px;">
+            <input id="f-species-other" type="text" placeholder="Type scientific name, e.g. Sonneratia caseolaris">
+            <span class="hint">New species are added to the species list automatically — no developer needed.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ms-card">
+        <h2><span class="num">2</span>Measurements</h2>
+        <div class="ms-row">
+          <div class="ms-field">
+            <label>Trunk Circumference (cm)</label>
+            <input id="f-circ" type="number" step="0.0001" placeholder="e.g. 61.8894">
+          </div>
+          <div class="ms-field">
+            <label>DBH (cm) — auto-calculated</label>
+            <input id="f-dbh" type="number" step="0.0001" readonly>
+            <span class="hint">DBH = circumference ÷ π. Edit manually only if measured directly.</span>
+          </div>
+        </div>
+        <div class="ms-field">
+          <label>Tree Height (m)</label>
+          <input id="f-height" type="number" step="0.001" placeholder="e.g. 10.354">
+        </div>
+        <div class="ms-field">
+          <label>Health Status</label>
+          <select id="f-health">
+            <option>Healthy</option>
+            <option>Monitor</option>
+            <option>Critical</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="ms-card">
+        <h2><span class="num">3</span>Tree Photo</h2>
+        <label class="ms-upload" id="dropzone">
+          <input type="file" id="f-photo" accept="image/png, image/jpeg">
+          <div id="dz-label">📷 Click to upload a photo (JPG/PNG)</div>
+        </label>
+        <div class="ms-preview">
+          <img id="photo-preview">
+          <span class="hint" id="photo-meta"></span>
+        </div>
+        <div class="ms-tip">
+          <span class="leaf">🌱</span>
+          <span>Frame the trunk tag if there's one, and name the file <code>{tree_code}_{YYYYMMDD}.jpg</code> — future-you will thank present-you.</span>
+        </div>
+      </div>
+
+      <div class="ms-card">
+        <h2><span class="num">4</span>Location</h2>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; align-items:start;">
+          <div>
+            <div id="location-map" style="height:200px; border-radius:10px; border:1px solid var(--border); margin-bottom:10px;"></div>
+            <button class="ms-btn secondary" id="geo-btn" style="width:100%;">📍 Use my current location</button>
+            <div id="geo-status" class="hint" style="margin-top:8px;"></div>
+          </div>
+          <div>
+            <div class="ms-field">
+              <label>Latitude (WGS84)</label>
+              <input id="f-lat" type="number" step="0.0000001" placeholder="e.g. 1.4351200">
+            </div>
+            <div class="ms-field">
+              <label>Longitude (WGS84)</label>
+              <input id="f-lng" type="number" step="0.0000001" placeholder="e.g. 103.6231400">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ms-field">
+        <label>Notes</label>
+        <textarea id="f-notes" rows="2" placeholder="Optional field notes..."></textarea>
+      </div>
+      <button class="ms-btn" id="save-btn">Save Tree Record</button>
+    </div>
+  </div>
+</div>
+
+  </div>
+</div>
+
+<div class="ms-toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function(){
+  const API = 'api.php';
+  const CENTER = [1.4350, 103.6230];
+  let marker = null;
+  let locationMarker = null;
+  let locationAccuracyCircle = null;
+
+  // BIG MAP on the left - shows all trees
+  const map = L.map('map', {scrollWheelZoom:true}).setView(CENTER, 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'&copy; OpenStreetMap contributors', maxZoom:19
+  }).addTo(map);
+
+  // Small location map in the form
+  const locationMap = L.map('location-map', {scrollWheelZoom:false}).setView(CENTER, 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'&copy; OpenStreetMap contributors', maxZoom:19
+  }).addTo(locationMap);
+
+  let overviewMarkers = [];
+
+  function colorFor(status){
+    return status==='Critical' ? '#d24b4b' : status==='Monitor' ? '#d98a2b' : '#3f9142';
+  }
+
+  function setFormMarker(lat, lng, accuracy){
+    // Update form fields
+    document.getElementById('f-lat').value = lat.toFixed(7);
+    document.getElementById('f-lng').value = lng.toFixed(7);
+    
+    // Update marker on BIG map (but don't zoom/pan)
+    if(marker){ 
+      marker.setLatLng([lat,lng]); 
+    } else {
+      marker = L.marker([lat,lng], {draggable:true}).addTo(map);
+      marker.on('dragend', e => {
+        const p = e.target.getLatLng();
+        document.getElementById('f-lat').value = p.lat.toFixed(7);
+        document.getElementById('f-lng').value = p.lng.toFixed(7);
+        // Also update small map marker
+        if(locationMarker) locationMarker.setLatLng([p.lat, p.lng]);
+      });
+    }
+    
+    // Update marker and zoom on SMALL location map only
+    if(locationMarker){
+      locationMarker.setLatLng([lat,lng]);
+    } else {
+      locationMarker = L.marker([lat,lng], {draggable:true}).addTo(locationMap);
+      locationMarker.on('dragend', e => {
+        const p = e.target.getLatLng();
+        document.getElementById('f-lat').value = p.lat.toFixed(7);
+        document.getElementById('f-lng').value = p.lng.toFixed(7);
+        // Also update big map marker
+        if(marker) marker.setLatLng([p.lat, p.lng]);
+      });
+    }
+    
+    // Show accuracy circle on small map and zoom to it
+    if(accuracy){
+      if(locationAccuracyCircle) locationMap.removeLayer(locationAccuracyCircle);
+      locationAccuracyCircle = L.circle([lat,lng], {
+        radius:accuracy, color:'#4a9d3e', fillOpacity:0.1, weight:1
+      }).addTo(locationMap);
+      locationMap.fitBounds(locationAccuracyCircle.getBounds(), {maxZoom:18});
+    } else {
+      locationMap.setView([lat,lng], 16);
+    }
+  }
+
+  document.getElementById('geo-btn').addEventListener('click', () => {
+    const status = document.getElementById('geo-status');
+    if(!('geolocation' in navigator)){
+      status.textContent = 'Your browser/device does not support location access.'; return;
+    }
+    status.textContent = 'Getting your location…';
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        setFormMarker(latitude, longitude, accuracy);
+        status.textContent = `Located within ~${Math.round(accuracy)}m`;
+      },
+      err => {
+        status.textContent = 'Could not get location (' + err.message + ').';
+      },
+      { enableHighAccuracy:true, timeout:12000, maximumAge:0 }
+    );
+  });
+
+  // Click on big map - place marker but don't zoom
+  map.on('click', e => {
+    setFormMarker(e.latlng.lat, e.latlng.lng);
+  });
+
+  // Click on small map - place marker and zoom
+  locationMap.on('click', e => {
+    setFormMarker(e.latlng.lat, e.latlng.lng, null);
+  });
+
+  // Species "other" toggle
+  document.getElementById('f-species').addEventListener('change', e => {
+    document.getElementById('other-species-wrap').style.display =
+      e.target.value==='__other__' ? 'block' : 'none';
+  });
+
+  // Circumference → DBH auto-calc
+  document.getElementById('f-circ').addEventListener('input', e => {
+    const c = parseFloat(e.target.value);
+    document.getElementById('f-dbh').value = c ? (c / Math.PI).toFixed(4) : '';
+  });
+
+  // Tree code duplicate check
+  let codeCheckTimer = null;
+  document.getElementById('f-code').addEventListener('input', e => {
+    clearTimeout(codeCheckTimer);
+    const code = e.target.value.trim();
+    if(!code) return;
+    codeCheckTimer = setTimeout(async () => {
+      const res = await fetch(`${API}?action=check_code&code=${encodeURIComponent(code)}`);
+      const data = await res.json();
+      if(data.exists){
+        const src = data.row.data_source === 'import' ? '(imported survey data)' : '(manually entered)';
+        showToast(`⚠️ ${code} already exists ${src}. Saving will UPDATE it.`);
+      }
+    }, 600);
+  });
+
+  // Photo upload → resize + base64 preview
+  let photoDataUrl = null;
+  document.getElementById('f-photo').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = ev => {
+      img.onload = () => {
+        const maxW = 800;
+        const scale = Math.min(1, maxW / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width  = img.width  * scale;
+        canvas.height = img.height * scale;
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        photoDataUrl = canvas.toDataURL('image/jpeg', 0.78);
+        const prev = document.getElementById('photo-preview');
+        prev.src = photoDataUrl;
+        prev.style.display = 'block';
+        document.getElementById('photo-meta').textContent =
+          `Resized to ${Math.round(canvas.width)}×${Math.round(canvas.height)}px`;
+        document.getElementById('dz-label').textContent = '✅ ' + file.name;
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 3000);
+  }
+
+  // ── SAVE TREE → POST to api.php ──────────────────────────
+  document.getElementById('save-btn').addEventListener('click', async () => {
+    const code = document.getElementById('f-code').value.trim();
+    let species = document.getElementById('f-species').value;
+    if(species === '__other__'){
+      species = document.getElementById('f-species-other').value.trim();
+    }
+    const circ   = document.getElementById('f-circ').value;
+    const dbh    = document.getElementById('f-dbh').value;
+    const height = document.getElementById('f-height').value;
+    const lat    = document.getElementById('f-lat').value;
+    const lng    = document.getElementById('f-lng').value;
+    const health = document.getElementById('f-health').value;
+    const zone   = document.getElementById('f-zone').value;
+    const notes  = document.getElementById('f-notes').value;
+
+    if(!code || !species || !circ || !height || !lat || !lng){
+      showToast('⚠️ Please fill in code, species, circumference, height and a location.');
+      return;
+    }
+
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    const body = new URLSearchParams({
+      action: 'save_tree',
+      tree_code: code,
+      species_id: species,
+      trunk_circumference_cm: circ,
+      dbh_cm: dbh,
+      tree_height_m: height,
+      lat, lng,
+      zone_label: zone,
+      health_status: health,
+      notes,
+      photo_data: photoDataUrl || '',
+    });
+
+    try {
+      const res  = await fetch(API, { method:'POST', body });
+      const data = await res.json();
+      if(data.error){ showToast('❌ ' + data.error); return; }
+      showToast('✅ Saved ' + code);
+      document.getElementById('f-code').value    = '';
+      document.getElementById('f-circ').value   = '';
+      document.getElementById('f-dbh').value    = '';
+      document.getElementById('f-height').value = '';
+      document.getElementById('f-notes').value  = '';
+      document.getElementById('f-lat').value    = '';
+      document.getElementById('f-lng').value    = '';
+      document.getElementById('f-health').value = 'Healthy';
+      document.getElementById('dz-label').textContent = '📷 Click to upload a photo (JPG/PNG)';
+      document.getElementById('photo-preview').style.display = 'none';
+      document.getElementById('photo-meta').textContent = '';
+      document.getElementById('geo-status').textContent = '';
+      photoDataUrl = null;
+      if(marker){ map.removeLayer(marker); marker = null; }
+      if(locationMarker){ locationMap.removeLayer(locationMarker); locationMarker = null; }
+      if(locationAccuracyCircle){ locationMap.removeLayer(locationAccuracyCircle); locationAccuracyCircle = null; }
+      await refreshLog();
+    } catch(err) {
+      showToast('❌ Network error — is XAMPP running? ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save Tree Record';
+    }
+  });
+
+  // ── LOAD RECENT RECORDS from api.php ─────────────────────
+  async function refreshTable(){
+    const tbody = document.getElementById('log-body');
+    const empty = document.getElementById('log-empty');
+    tbody.innerHTML = '';
+
+    try {
+      const res     = await fetch(`${API}?action=get_trees&limit=20&source=manual`);
+      const records = await res.json();
+
+      if(!Array.isArray(records) || records.length === 0){
+        empty.style.display = 'block';
+        empty.textContent   = 'No manually entered records yet — fill in the form and save one.';
+        return;
+      }
+      empty.style.display = 'none';
+
+      records.forEach(rec => {
+        const tr = document.createElement('tr');
+        const shortSpecies = (rec.species_id || '').split(' ')[0];
+        const dbh = rec.dbh_cm ? parseFloat(rec.dbh_cm).toFixed(2) : '—';
+        tr.innerHTML = `<td>${rec.tree_code}</td><td>${shortSpecies}</td><td>${dbh}</td>
+          <td><span class="status-pill status-${rec.health_status}">${rec.health_status}</span></td>`;
+        tbody.appendChild(tr);
+      });
+
+    } catch(err) {
+      empty.style.display = 'block';
+      empty.textContent = '⚠️ Could not load records — is XAMPP running?';
+      console.error('refreshTable error:', err);
+    }
+  }
+
+  // Populates the BIG "Plot Overview" map — ALL trees (imported + manual)
+  async function refreshMap(){
+    overviewMarkers.forEach(m => map.removeLayer(m));
+    overviewMarkers = [];
+
+    try {
+      const res     = await fetch(`${API}?action=get_trees&limit=600`);
+      const records = await res.json();
+      if(!Array.isArray(records)) return;
+
+      const bounds = [];
+      records.forEach(rec => {
+        if(rec.lat && rec.lng){
+          const dbh = rec.dbh_cm ? parseFloat(rec.dbh_cm).toFixed(2) : '—';
+          const latlng = [parseFloat(rec.lat), parseFloat(rec.lng)];
+          const cm = L.circleMarker(latlng, {
+            radius:5, color:colorFor(rec.health_status),
+            fillColor:colorFor(rec.health_status), fillOpacity:0.85, weight:1
+          }).addTo(map)
+            .bindPopup(`<b>${rec.tree_code}</b><br>${rec.species_id}<br>DBH: ${dbh} cm`);
+          overviewMarkers.push(cm);
+          bounds.push(latlng);
+        }
+      });
+      if(bounds.length){ map.fitBounds(bounds, {maxZoom:16, padding:[20,20]}); }
+
+    } catch(err) {
+      console.error('refreshMap error:', err);
+    }
+  }
+
+  async function refreshLog(){
+    await Promise.all([refreshTable(), refreshMap()]);
+  }
+
+  // ── CLEAR my manual entries ───────────────────────────────
+  document.getElementById('clear-btn').addEventListener('click', async () => {
+    if(!confirm('Delete all manually entered records from this session? Imported survey data is NOT affected.')) return;
+    try {
+      const res     = await fetch(`${API}?action=get_trees&limit=500&source=manual`);
+      const records = await res.json();
+      for(const rec of records){
+        await fetch(API, {
+          method: 'POST',
+          body: new URLSearchParams({ action:'delete_tree', tree_code: rec.tree_code })
+        });
+      }
+      await refreshLog();
+      showToast('✅ Manual entries cleared.');
+    } catch(err) {
+      showToast('❌ ' + err.message);
+    }
+  });
+
+  refreshLog();
+})();
+</script>
+</body>
+</html>
