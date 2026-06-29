@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MangroveSense — Plot Overview Map</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand-dark:#1f5c33;
+    --brand:#4a9d3e;
+    --brand-light:#eef6ea;
+    --white:#ffffff;
+    --border:#d9e8d3;
+    --text:#1c2b1f;
+    --text-soft:#5d6e60;
+    --warn:#d98a2b;
+    --crit:#d24b4b;
+    --ok:#3f9142;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:'Inter',sans-serif; color:var(--text); margin:0; background:var(--brand-light); min-height:100vh;}
+  .ms-header{
+    background:linear-gradient(120deg, var(--brand-dark), var(--brand));
+    color:#fff; padding:18px 24px; display:flex; align-items:center;
+    justify-content:space-between; gap:16px; flex-wrap:wrap;
+    border-radius:0 0 18px 18px; margin-bottom:20px;
+  }
+  .ms-header h1{font-size:18px; margin:0 0 2px; font-weight:800;}
+  .ms-header p{margin:0; font-size:12px; opacity:.85;}
+  .ms-badge{background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35); padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600; color:#fff; text-decoration:none;}
+  .ms-container{max-width:1320px; margin:0 auto; padding:0 24px 30px;}
+  .ms-card{background:var(--white); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; margin-bottom:18px; box-shadow:0 1px 3px rgba(20,60,20,.05);}
+
+  .ms-stats-row{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:18px;}
+  .ms-stat{flex:1; min-width:140px; background:var(--white); border:1px solid var(--border); border-radius:12px; padding:14px 16px;}
+  .ms-stat .lbl{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--text-soft); margin-bottom:4px;}
+  .ms-stat .val{font-size:20px; font-weight:800;}
+  .ms-stat.healthy .val{color:var(--ok);}
+  .ms-stat.monitor .val{color:var(--warn);}
+  .ms-stat.critical .val{color:var(--crit);}
+  .ms-stat.total .val{color:var(--brand-dark);}
+
+  #map-full{height:62vh; min-height:420px; border-radius:10px; border:1px solid var(--border);}
+  
+  /* Species Legend */
+  .species-legend {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .species-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    color: var(--text-soft);
+  }
+  .species-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  /* ── Sidebar shell ── */
+  .ms-shell{display:flex; min-height:100vh;}
+  .ms-sidebar{
+    width:226px; flex-shrink:0; background:#fff; border-right:1px solid var(--border);
+    padding:22px 14px; position:sticky; top:0; height:100vh; overflow-y:auto;
+    display:flex; flex-direction:column; gap:3px;
+  }
+  .ms-sb-brand{display:flex; align-items:center; gap:10px; padding:0 8px 18px; border-bottom:1px solid var(--border); margin-bottom:14px;}
+  .ms-sb-brand .ic{width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,var(--brand-dark),var(--brand)); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;}
+  .ms-sb-brand b{display:block; font-size:14px; color:var(--brand-dark); line-height:1.2;}
+  .ms-sb-brand span{display:block; font-size:10px; color:var(--text-soft); margin-top:1px;}
+  .ms-sb-link{display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:9px; color:var(--text-soft); font-size:13px; font-weight:600; text-decoration:none; transition:background .15s, color .15s;}
+  .ms-sb-link .ic{font-size:15px; width:18px; text-align:center; flex-shrink:0;}
+  .ms-sb-link:hover{background:var(--brand-light); color:var(--brand-dark);}
+  .ms-sb-link.active{background:var(--brand-dark); color:#fff;}
+  .ms-main{flex:1; min-width:0;}
+  @media (max-width:880px){
+    .ms-shell{flex-direction:column;}
+    .ms-sidebar{width:100%; height:auto; position:relative; flex-direction:row; align-items:center; overflow-x:auto; padding:10px 12px; gap:6px;}
+    .ms-sb-brand{display:none;}
+    .ms-sb-link{flex-direction:column; gap:3px; font-size:10.5px; padding:8px 10px; white-space:nowrap;}
+  }
+</style>
+</head>
+<body>
+
+<div class="ms-shell">
+  <nav class="ms-sidebar">
+    <div class="ms-sb-brand">
+      <div class="ic">🌳</div>
+      <div><b>MangroveSense</b><span>Blue Carbon Dashboard</span></div>
+    </div>
+    <a href="index.html" class="ms-sb-link"><span class="ic">🏠</span> Dashboard Home</a>
+    <a href="entry.html" class="ms-sb-link"><span class="ic">✏️</span> Tree Entry</a>
+    <a href="map.html" class="ms-sb-link active"><span class="ic">🗺️</span> Plot Overview Map</a>
+    <a href="inventory.html" class="ms-sb-link"><span class="ic">📋</span> Tree Inventory</a>
+    <a href="analytics.html" class="ms-sb-link"><span class="ic">📊</span> Analytics Carbon</a>
+  </nav>
+  <div class="ms-main">
+
+<div class="ms-header">
+  <div>
+    <h1>🗺️ MangroveSense — Plot Overview Map</h1>
+    <p>Live tree locations · Iskandar Puteri Blue Carbon Plots</p>
+  </div>
+  <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+    <a href="inventory.html" class="ms-badge">📋 Tree Inventory</a>
+    <span class="ms-badge" id="total-badge">Loading…</span>
+  </div>
+</div>
+
+<div class="ms-container">
+
+  <div class="ms-stats-row">
+    <div class="ms-stat total"><div class="lbl">Plotted Trees</div><div class="val" id="st-total">—</div></div>
+    <div class="ms-stat healthy"><div class="lbl">Healthy</div><div class="val" id="st-healthy">—</div></div>
+    <div class="ms-stat monitor"><div class="lbl">Monitor</div><div class="val" id="st-monitor">—</div></div>
+    <div class="ms-stat critical"><div class="lbl">Critical</div><div class="val" id="st-critical">—</div></div>
+  </div>
+
+  <div class="ms-card">
+    <div id="map-full"></div>
+    <div class="species-legend" id="species-legend">
+      <!-- Species colors will be added here dynamically -->
+    </div>
+  </div>
+
+</div>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function(){
+  const API = 'api.php';
+  const CENTER = [1.4350, 103.6230]; // approx Iskandar Puteri, Johor
+
+  const map = L.map('map-full', {scrollWheelZoom:true}).setView(CENTER, 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom:19, attribution:'© OpenStreetMap contributors'
+  }).addTo(map);
+
+  let markers = [];
+  let allRecords = [];
+  
+  // Species color mapping
+  const speciesColors = {
+    'RHIZOPHORA APICULATA': '#E91E63',      // Pink
+    'BRUGUIERA CYLINDRICA': '#2196F3',      // Blue
+    'AVICENNIA OFFICINALIS': '#FF9800',     // Orange
+    'CERIOPS TAGAL': '#9C27B0',            // Purple
+    'BRUGUIERA HAINESII': '#009688',       // Teal
+    'SONNERATIA CASEOLARIS': '#795548',    // Brown
+    'EXCOECARIA AGALLOCHA': '#607D8B',     // Blue Grey
+    'XYLOCARPUS GRANATUM': '#FF5722',      // Deep Orange
+    'LUMNITZERA RACEMOSA': '#4CAF50',      // Green
+    'AEGICERAS CORNICULATUM': '#3F51B5',   // Indigo
+    'OTHER': '#9E9E9E'                      // Grey
+  };
+
+  function getColorForSpecies(speciesId){
+    if(!speciesId) return speciesColors['OTHER'];
+    const upperSpecies = speciesId.toUpperCase();
+    for(const [key, color] of Object.entries(speciesColors)){
+      if(upperSpecies.includes(key) || key.includes(upperSpecies)){
+        return color;
+      }
+    }
+    return speciesColors['OTHER'];
+  }
+
+  function colorForHealth(status){
+    if(status === 'Healthy')  return '#3f9142';
+    if(status === 'Monitor')  return '#d98a2b';
+    if(status === 'Critical') return '#d24b4b';
+    return '#5d6e60';
+  }
+
+  function formatShortSpecies(speciesId){
+    if(!speciesId) return 'Unknown';
+    return speciesId.split(' ')[0];
+  }
+
+  function renderMarkers(){
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
+    const bounds = [];
+
+    allRecords.forEach(rec => {
+      if(rec.lat && rec.lng){
+        const dbh = rec.dbh_cm ? parseFloat(rec.dbh_cm).toFixed(2) : '—';
+        const height = rec.tree_height_m ? parseFloat(rec.tree_height_m).toFixed(2) : '—';
+        const circ = rec.trunk_circumference_cm ? parseFloat(rec.trunk_circumference_cm).toFixed(2) : '—';
+        const latlng = [parseFloat(rec.lat), parseFloat(rec.lng)];
+        const speciesColor = getColorForSpecies(rec.species_id);
+        const healthColor = colorForHealth(rec.health_status);
+        
+        const popupContent = `
+          <div style="min-width:200px; font-family:'Inter',sans-serif;">
+            <h3 style="margin:0 0 8px 0; color:#1f5c33; font-size:14px; border-bottom:2px solid #4a9d3e; padding-bottom:4px;">
+              ${rec.tree_code || 'Unknown'}
+            </h3>
+            <table style="width:100%; font-size:12px; border-collapse:collapse;">
+              <tr>
+                <td style="padding:3px 0; color:#5d6e60; font-weight:600;">Species:</td>
+                <td style="padding:3px 0; color:#1c2b1f;">${rec.species_id || 'Unknown'}</td>
+              </tr>
+              <tr>
+                <td style="padding:3px 0; color:#5d6e60; font-weight:600;">DBH:</td>
+                <td style="padding:3px 0; color:#1c2b1f;">${dbh} cm</td>
+              </tr>
+              <tr>
+                <td style="padding:3px 0; color:#5d6e60; font-weight:600;">Height:</td>
+                <td style="padding:3px 0; color:#1c2b1f;">${height} m</td>
+              </tr>
+              <tr>
+                <td style="padding:3px 0; color:#5d6e60; font-weight:600;">Circumference:</td>
+                <td style="padding:3px 0; color:#1c2b1f;">${circ} cm</td>
+              </tr>
+              <tr>
+                <td style="padding:3px 0; color:#5d6e60; font-weight:600;">Health Status:</td>
+                <td style="padding:3px 0;">
+                  <span style="display:inline-block; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600; background:${healthColor}20; color:${healthColor};">
+                    ${rec.health_status || 'Unknown'}
+                  </span>
+                </td>
+              </tr>
+              ${rec.zone_label ? `
+              <tr>
+                <td style="padding:3px 0; color:#5d6e60; font-weight:600;">Zone:</td>
+                <td style="padding:3px 0; color:#1c2b1f;">${rec.zone_label}</td>
+              </tr>
+              ` : ''}
+              <tr>
+                <td style="padding:3px 0; color:#5d6e60; font-weight:600;">Coordinates:</td>
+                <td style="padding:3px 0; color:#1c2b1f; font-size:11px;">
+                  ${parseFloat(rec.lat).toFixed(6)}, ${parseFloat(rec.lng).toFixed(6)}
+                </td>
+              </tr>
+              ${rec.updated_at ? `
+              <tr>
+                <td style="padding:3px 0; color:#5d6e60; font-weight:600;">Last Updated:</td>
+                <td style="padding:3px 0; color:#1c2b1f; font-size:11px;">
+                  ${new Date(rec.updated_at).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                  })}
+                </td>
+              </tr>
+              ` : ''}
+            </table>
+          </div>
+        `;
+        
+        const cm = L.circleMarker(latlng, {
+          radius:7, 
+          color:speciesColor,
+          fillColor:speciesColor, 
+          fillOpacity:0.85, 
+          weight:2,
+          stroke:true
+        }).addTo(map)
+          .bindPopup(popupContent);
+        markers.push(cm);
+        bounds.push(latlng);
+      }
+    });
+    if(bounds.length){ map.fitBounds(bounds, {maxZoom:17, padding:[24,24]}); }
+  }
+
+  function updateStats(){
+    const total    = allRecords.length;
+    const healthy  = allRecords.filter(r => r.health_status === 'Healthy').length;
+    const monitor  = allRecords.filter(r => r.health_status === 'Monitor').length;
+    const critical = allRecords.filter(r => r.health_status === 'Critical').length;
+
+    document.getElementById('st-total').textContent    = total.toLocaleString();
+    document.getElementById('st-healthy').textContent  = healthy.toLocaleString();
+    document.getElementById('st-monitor').textContent  = monitor.toLocaleString();
+    document.getElementById('st-critical').textContent = critical.toLocaleString();
+    document.getElementById('total-badge').textContent = `${total.toLocaleString()} trees plotted`;
+  }
+
+  function updateSpeciesLegend(){
+    const legend = document.getElementById('species-legend');
+    const speciesCount = {};
+    
+    allRecords.forEach(rec => {
+      if(rec.species_id){
+        speciesCount[rec.species_id] = (speciesCount[rec.species_id] || 0) + 1;
+      }
+    });
+    
+    let html = '';
+    Object.entries(speciesCount).forEach(([species, count]) => {
+      const color = getColorForSpecies(species);
+      const shortName = formatShortSpecies(species);
+      html += `
+        <div class="species-item">
+          <span class="species-color" style="background:${color};"></span>
+          <span>${shortName} (${count})</span>
+        </div>
+      `;
+    });
+    
+    legend.innerHTML = html;
+  }
+
+  async function loadAll(){
+    try {
+      // Fetch ALL trees without pagination limit
+      const res = await fetch(`${API}?action=get_trees&limit=1000`);
+      const records = await res.json();
+      allRecords = Array.isArray(records) ? records : [];
+      updateStats();
+      updateSpeciesLegend();
+      renderMarkers();
+    } catch(err) {
+      document.getElementById('total-badge').textContent = 'offline';
+      console.error('loadAll error:', err);
+    }
+  }
+
+  loadAll();
+})();
+</script>
+</body>
+</html>

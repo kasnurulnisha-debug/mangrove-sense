@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MangroveSense — Dashboard Home</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--brand-dark:#1f5c33;--brand:#4a9d3e;--brand-light:#eef6ea;--white:#ffffff;--border:#d9e8d3;--text:#1c2b1f;--text-soft:#5d6e60;--warn:#d98a2b;--crit:#d24b4b;--ok:#3f9142;--radius:14px;}
+  *{box-sizing:border-box;}
+  body{font-family:'Inter',sans-serif;color:var(--text);margin:0;background:var(--brand-light);}
+  .ms-shell{display:flex;min-height:100vh;}
+  .ms-sidebar{width:226px;flex-shrink:0;background:#fff;border-right:1px solid var(--border);padding:22px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:3px;}
+  .ms-sb-brand{display:flex;align-items:center;gap:10px;padding:0 8px 18px;border-bottom:1px solid var(--border);margin-bottom:14px;}
+  .ms-sb-brand .ic{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--brand-dark),var(--brand));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+  .ms-sb-brand b{display:block;font-size:14px;color:var(--brand-dark);line-height:1.2;}
+  .ms-sb-brand span{display:block;font-size:10px;color:var(--text-soft);margin-top:1px;}
+  .ms-sb-link{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;color:var(--text-soft);font-size:13px;font-weight:600;text-decoration:none;transition:background .15s,color .15s;}
+  .ms-sb-link .ic{font-size:15px;width:18px;text-align:center;flex-shrink:0;}
+  .ms-sb-link:hover{background:var(--brand-light);color:var(--brand-dark);}
+  .ms-sb-link.active{background:var(--brand-dark);color:#fff;}
+  .ms-main{flex:1;min-width:0;padding-bottom:40px;}
+
+  /* Header */
+  .ms-header{background:linear-gradient(135deg,rgba(31,92,51,0.85),rgba(74,157,62,0.85)),url('https://wallpaperaccess.com/full/3879957.jpg') center/cover no-repeat;color:#fff;padding:28px 28px;display:flex;align-items:center;justify-content:space-between;border-radius:0 0 18px 18px;box-shadow:0 8px 32px rgba(31,92,51,0.25);}
+  .ms-header-left{display:flex;align-items:center;gap:16px;}
+  .ms-header-left img.logo{width:56px;height:56px;object-fit:contain;border-radius:50%;background:rgba(255,255,255,0.15);padding:5px;}
+  .ms-header-left h1{font-size:22px;margin:0 0 4px;font-weight:800;}
+  .ms-header-left p{margin:0;font-size:13px;opacity:.9;}
+  .ms-badge{background:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.4);padding:8px 15px;border-radius:22px;font-size:13px;font-weight:600;color:var(--brand-dark);text-decoration:none;display:inline-flex;align-items:center;gap:6px;}
+
+  /* KPI strip */
+  .kpi-strip{background:#fff;border-bottom:1px solid var(--border);padding:12px 28px;display:flex;gap:0;flex-wrap:wrap;}
+  .kpi-item{flex:1;min-width:150px;padding:8px 16px 8px 0;border-right:1px solid var(--border);margin-right:16px;}
+  .kpi-item:last-child{border-right:none;margin-right:0;}
+  .kpi-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-soft);margin-bottom:3px;}
+  .kpi-val{font-size:20px;font-weight:800;}
+  .kpi-sub{font-size:11px;color:var(--text-soft);margin-top:2px;}
+
+  /* Container */
+  .ms-container{max-width:1380px;margin:0 auto;padding:18px 24px;}
+
+  /* 4 charts in one row — compact */
+  .charts-quad{display:grid;grid-template-columns:1fr 1.2fr 1.2fr;gap:14px;margin-bottom:18px;}
+  .chart-wrap{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 1px 3px rgba(20,60,20,.05);}
+  .chart-wrap h3{font-size:11.5px;font-weight:700;color:var(--brand-dark);margin:0 0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .chart-canvas-wrap{position:relative;height:185px;}
+
+  /* Map card */
+  .ms-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:0 1px 3px rgba(20,60,20,.05);}
+  .ms-card h2{font-size:14px;font-weight:700;color:var(--brand-dark);margin:0 0 14px;display:flex;align-items:center;gap:8px;}
+  #dash-map{height:430px;border-radius:10px;border:1px solid var(--border);}
+  .ms-legend{display:flex;gap:14px;font-size:11.5px;color:var(--text-soft);margin-top:10px;flex-wrap:wrap;align-items:center;}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px;}
+
+  @media(max-width:1100px){.charts-quad{grid-template-columns:1fr 1fr;}}
+  @media(max-width:880px){.ms-shell{flex-direction:column;}.ms-sidebar{width:100%;height:auto;position:relative;flex-direction:row;align-items:center;overflow-x:auto;padding:10px 12px;gap:6px;}.ms-sb-brand{display:none;}.ms-sb-link{flex-direction:column;gap:3px;font-size:10.5px;padding:8px 10px;white-space:nowrap;}.charts-quad{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="ms-shell">
+  <nav class="ms-sidebar">
+    <div class="ms-sb-brand">
+      <div class="ic">🌳</div>
+      <div><b>MangroveSense</b><span>Blue Carbon Dashboard</span></div>
+    </div>
+    <a href="index.html"     class="ms-sb-link active"><span class="ic">🏠</span> Dashboard Home</a>
+    <a href="entry.html"     class="ms-sb-link"><span class="ic">✏️</span> Tree Entry</a>
+    <a href="map.html"       class="ms-sb-link"><span class="ic">🗺️</span> Plot Overview Map</a>
+    <a href="inventory.html" class="ms-sb-link"><span class="ic">📋</span> Tree Inventory</a>
+    <a href="analytics.html" class="ms-sb-link"><span class="ic">📊</span> Analytics Carbon</a>
+  </nav>
+  <div class="ms-main">
+
+    <!-- Header -->
+    <div class="ms-header">
+      <div class="ms-header-left">
+        <img src="images/logo.png" alt="MangroveSense logo" class="logo">
+        <div>
+          <h1>MangroveSense</h1>
+          <p>Blue Carbon Dashboard — Iskandar Puteri, Johor</p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <a href="entry.html"     class="ms-badge">✏️ Add Tree Entry</a>
+        <a href="inventory.html" class="ms-badge">📋 Tree Inventory</a>
+      </div>
+    </div>
+
+    <!-- KPI Strip -->
+    <div class="kpi-strip">
+      <div class="kpi-item">
+        <div class="kpi-label">Total Trees</div>
+        <div class="kpi-val" id="ks-total" style="color:var(--brand-dark);">—</div>
+        <div class="kpi-sub">All recorded plots</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-label">Biomass</div>
+        <div class="kpi-val" id="ks-biomass" style="color:#0f6e56;">—</div>
+        <div class="kpi-sub">kg above-ground · IPCC Tier 1</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-label">Carbon Stock</div>
+        <div class="kpi-val" id="ks-carbon" style="color:#185fa5;">—</div>
+        <div class="kpi-sub">tCO₂ sequestered</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-label">Est. Carbon Value</div>
+        <div class="kpi-val" id="ks-value" style="color:#854f0b;">—</div>
+        <div class="kpi-sub">@ USD 18 / tCO₂ · voluntary market</div>
+      </div>
+    </div>
+
+    <div class="ms-container">
+
+      <!-- 4 Charts (compact, side by side) -->
+      <div class="charts-quad">
+        <div class="chart-wrap">
+          <h3>🌿 Species Composition</h3>
+          <div class="chart-canvas-wrap"><canvas id="chartSpecies"></canvas></div>
+        </div>
+
+        <div class="chart-wrap">
+          <h3>⚛️ Carbon by Species (tCO₂)</h3>
+          <div class="chart-canvas-wrap"><canvas id="chartCarbonSpecies"></canvas></div>
+        </div>
+        <div class="chart-wrap">
+          <h3>📏 DBH Distribution</h3>
+          <div class="chart-canvas-wrap"><canvas id="chartDBH"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Plot Overview Map -->
+      <div class="ms-card">
+        <h2>
+          🗺️ Plot Overview Map
+          <a href="map.html" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--brand);text-decoration:none;">Open full map →</a>
+        </h2>
+        <div id="dash-map"></div>
+        <div class="ms-legend">
+          <span><span class="dot" style="background:var(--ok)"></span>Healthy</span>
+          <span><span class="dot" style="background:var(--warn)"></span>Monitor</span>
+          <span><span class="dot" style="background:var(--crit)"></span>Critical</span>
+          <span id="map-count" style="margin-left:auto;font-size:11.5px;color:var(--text-soft);"></span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Load Chart.js THEN datalabels THEN Leaflet, all deferred so DOM is ready -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+  // Register datalabels plugin globally
+  Chart.register(ChartDataLabels);
+
+  // ── KPI + Charts ──────────────────────────────────────────
+  fetch('api.php?action=get_analytics')
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('ks-total').textContent   = data.total_trees.toLocaleString();
+      document.getElementById('ks-biomass').textContent = data.total_biomass_kg.toLocaleString() + ' kg';
+      document.getElementById('ks-carbon').textContent  = data.total_carbon_t + ' tCO₂';
+      document.getElementById('ks-value').textContent   = '$' + data.carbon_value_usd.toLocaleString(undefined, {maximumFractionDigits:2});
+
+      const NO_DL = { plugins: { datalabels: { display: false } } };
+
+      // 1. Species Composition — Doughnut
+      new Chart(document.getElementById('chartSpecies'), {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(data.species_count),
+          datasets: [{
+            data: Object.values(data.species_count),
+            backgroundColor: ['#2e7d32','#ef6c00','#1565c0','#6a1b9a','#c62828','#00897b','#f9a825'],
+            borderWidth: 2, borderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 10, padding: 6 } },
+            datalabels: { display: false }
+          }
+        }
+      });
+
+      // 3. Carbon Stock by Species — Bar
+      const carbonMax = Math.max(...Object.values(data.species_carbon));
+      new Chart(document.getElementById('chartCarbonSpecies'), {
+        type: 'bar',
+        data: {
+          labels: Object.keys(data.species_carbon).map(s => s.split(' ')[0]),
+          datasets: [{
+            label: 'tCO₂',
+            data: Object.values(data.species_carbon),
+            backgroundColor: '#1976d2', borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          layout: { padding: { top: 24 } },
+          scales: {
+            y: { beginAtZero: true, max: Math.ceil(carbonMax * 1.28), ticks: { font: { size: 9 } }, grid: { color: '#f0f0f0' } },
+            x: { ticks: { font: { size: 8 } } }
+          },
+          plugins: {
+            legend: { display: false },
+            datalabels: {
+              display: true, color: '#333', anchor: 'end', align: 'top',
+              offset: 2, font: { weight: 'bold', size: 8 },
+              formatter: v => v.toFixed(2)
+            }
+          }
+        }
+      });
+
+      // 4. DBH Distribution — Bar
+      const dbhMax = Math.max(...data.dbh_bins);
+      new Chart(document.getElementById('chartDBH'), {
+        type: 'bar',
+        data: {
+          labels: ['<10', '10-20', '20-30', '30-40', '40-50', '>50'],
+          datasets: [{
+            label: 'Trees',
+            data: data.dbh_bins,
+            backgroundColor: ['#795548','#8d6e63','#a1887f','#bcaaa4','#c8b8b0','#6d4c41'],
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          layout: { padding: { top: 24 } },
+          scales: {
+            y: { beginAtZero: true, max: Math.ceil(dbhMax * 1.28), ticks: { font: { size: 9 } }, grid: { color: '#f0f0f0' } },
+            x: { title: { display: true, text: 'DBH (cm)', font: { size: 9 } }, ticks: { font: { size: 9 } } }
+          },
+          plugins: {
+            legend: { display: false },
+            datalabels: {
+              display: true, color: '#555', anchor: 'end', align: 'top',
+              offset: 2, font: { size: 8, weight: '600' },
+              formatter: v => v > 0 ? v : ''
+            }
+          }
+        }
+      });
+    })
+    .catch(() => {
+      ['ks-total','ks-biomass','ks-carbon','ks-value'].forEach(id => document.getElementById(id).textContent = 'offline');
+    });
+
+  // ── Map ───────────────────────────────────────────────────
+  const CENTER = [1.4350, 103.6230];
+  const map = L.map('dash-map', { scrollWheelZoom: true }).setView(CENTER, 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  function colorFor(s) {
+    return s === 'Critical' ? '#d24b4b' : s === 'Monitor' ? '#d98a2b' : '#3f9142';
+  }
+
+  fetch('api.php?action=get_trees&limit=1000')
+    .then(r => r.json())
+    .then(records => {
+      if (!Array.isArray(records)) return;
+      const bounds = [];
+      records.forEach(rec => {
+        if (rec.lat && rec.lng) {
+          const latlng = [parseFloat(rec.lat), parseFloat(rec.lng)];
+          const dbh = rec.dbh_cm ? parseFloat(rec.dbh_cm).toFixed(2) : '—';
+          const col = colorFor(rec.health_status);
+          L.circleMarker(latlng, { radius: 6, color: col, fillColor: col, fillOpacity: 0.85, weight: 1.5 })
+            .addTo(map)
+            .bindPopup(`<b>${rec.tree_code}</b><br>${rec.species_id || '—'}<br>DBH: ${dbh} cm<br><span style="color:${col};font-weight:600;">${rec.health_status || '—'}</span>`);
+          bounds.push(latlng);
+        }
+      });
+      if (bounds.length) map.fitBounds(bounds, { maxZoom: 16, padding: [20, 20] });
+      document.getElementById('map-count').textContent = bounds.length.toLocaleString() + ' trees plotted';
+    })
+    .catch(() => {});
+
+});
+</script>
+</body>
+</html>
